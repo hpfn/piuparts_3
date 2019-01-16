@@ -1,6 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
-
 # Copyright 2013 David Steele (dsteele@gmail.com)
 # Copyright © 2014 Andreas Beckmann (anbe@debian.org)
 # Copyright © 2017-2018 Holger Levsen (holger@layer-acht.org)
@@ -29,10 +28,9 @@ import argparse
 import fcntl
 from collections import deque
 
-import piupartslib
+from piupartslib.conf import Config
 from piupartslib.conf import MissingSection
 from piupartslib.dwke import *
-
 
 CONFIG_FILE = "/etc/piuparts/piuparts.conf"
 KPR_DIRS = ('pass', 'bugged', 'affected', 'fail')
@@ -44,20 +42,19 @@ class Busy(Exception):
         self.args = "section is locked by another process",
 
 
-class WKE_Config(piupartslib.conf.Config):
-
+class WKE_Config(Config):
     """Configuration parameters for Well Known Errors"""
 
     def __init__(self, section="global", defaults_section=None):
         self.section = section
-        piupartslib.conf.Config.__init__(self, section,
-                                         {
-                                         "sections": "report",
-                                         "master-directory": ".",
-                                         "known-problem-directory": "@sharedir@/piuparts/known_problems",
-                                         "exclude-known-problems": None,
-                                         },
-                                         defaults_section=defaults_section)
+        super().__init__(self, section,
+                         {
+                             "sections": "report",
+                             "master-directory": ".",
+                             "known-problem-directory": "@sharedir@/piuparts/known_problems",
+                             "exclude-known-problems": None,
+                         },
+                         defaults_section=defaults_section)
 
 
 def setup_logging(log_level):
@@ -106,7 +103,6 @@ def process_section(section, config, problem_list,
 
 
 def detect_well_known_errors(sections, config, problem_list, recheck, recheck_failed):
-
     total_del = 0
     total_add = 0
     todo = deque([(s, 0) for s in sections])
@@ -122,18 +118,19 @@ def detect_well_known_errors(sections, config, problem_list, recheck, recheck_fa
                                 recheck, recheck_failed)
             total_del += del_cnt
             total_add += add_cnt
-            current_time=time.strftime("%a %b %2d %H:%M:%S %Z %Y", time.localtime())
+            current_time = time.strftime("%a %b %2d %H:%M:%S %Z %Y", time.localtime())
             if del_cnt == 0 and add_cnt == 0:
-                pass # nothing new
+                pass  # nothing new
             else:
-                logging.info("%s - %s: parsed logfiles: %d removed, %d added" % (current_time, section, del_cnt, add_cnt))
+                logging.info(
+                    "%s - %s: parsed logfiles: %d removed, %d added" % (current_time, section, del_cnt, add_cnt))
         except Busy:
             # section is busy
             todo.append((section, time.time() + 300))
         except MissingSection:
             pass
 
-    current_time=time.strftime("%a %b %2d %H:%M:%S %Z %Y", time.localtime())
+    current_time = time.strftime("%a %b %2d %H:%M:%S %Z %Y", time.localtime())
     logging.info("%s - total parsed logfiles: %d removed, %d added" % (current_time, total_del, total_add))
     logging.info("")
 
@@ -143,7 +140,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
         description="Detect well known errors",
-                 epilog="""
+        epilog="""
 This script processes all log files against defined "known_problem" files,
 caching the problems found, by package, into ".kpr" files.
 """)

@@ -32,7 +32,9 @@ import random
 import stat
 import tempfile
 import time
-import UserDict
+
+from collections import UserDict
+
 import apt_pkg
 
 import piupartslib
@@ -54,10 +56,10 @@ def rfc822_like_header_parse(input):
     return headers
 
 
-class Package(UserDict.UserDict):
+class Package(UserDict):
 
     def __init__(self, headers):
-        UserDict.UserDict.__init__(self)
+        super().__init__(self)
         self.headers = headers
         for header in headers:
             name, value = header.split(":", 1)
@@ -163,10 +165,10 @@ class Package(UserDict.UserDict):
         output_file.write("".join(self.headers))
 
 
-class PackagesFile(UserDict.UserDict):
+class PackagesFile(UserDict):
 
     def __init__(self):
-        UserDict.UserDict.__init__(self)
+        super().__init__(self)
         self._urllist = []
 
     def load_packages_urls(self, urls, restrict_packages=None):

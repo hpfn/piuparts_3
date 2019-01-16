@@ -169,7 +169,7 @@ install: install-master install-slave
 
 
 check:
-	nosetests --verbose
+	nosetests3 --verbose
 
 clean:
 	rm -f build-stamp

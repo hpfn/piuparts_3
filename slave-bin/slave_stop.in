@@ -41,9 +41,9 @@ sleep 0.5
 pkill --signal INT --full '/usr/bin/python @sharedir@/piuparts/piuparts-slave'
 
 i=1
-while pgrep --full '/usr/bin/python @sharedir@/piuparts/piuparts-slave' > /dev/null ; do
+while pgrep --full '/usr/bin/python3 @sharedir@/piuparts/piuparts-slave' > /dev/null ; do
 	echo -n "$(date -u +%T) - "
-	pgrep --full '/usr/bin/python @sharedir@/piuparts/piuparts-slave' | xargs -r echo -n "slaves running: "
+	pgrep --full '/usr/bin/python3 @sharedir@/piuparts/piuparts-slave' | xargs -r echo -n "slaves running: "
 	SLEEP=$(( $i * $i ))
 	echo -n " sleeping ${SLEEP}sec now..."
 	for j in $(seq 1 $SLEEP) ; do
@@ -54,7 +54,7 @@ while pgrep --full '/usr/bin/python @sharedir@/piuparts/piuparts-slave' > /dev/n
 	i=$(( $i + 1 ))
 done
 echo -n "$(date -u +%T) - "
-pgrep --full '/usr/bin/python @sharedir@/piuparts/piuparts-slave' | xargs echo "slaves running: (should list none) "
+pgrep --full '/usr/bin/python3 @sharedir@/piuparts/piuparts-slave' | xargs echo "slaves running: (should list none) "
 
 trap - INT TERM EXIT
 kill $TAILPID

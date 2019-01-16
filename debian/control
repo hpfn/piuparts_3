@@ -10,15 +10,14 @@ Build-Depends:
  asciidoc,
  debhelper-compat (= 11),
  dh-python,
- python (>= 2.7),
- python-debian,
- python-apt,
- python-distro-info,
- python-nose,
- python-debianbts,
- python-yaml,
- python-mox3,
- python-lzma,
+ python3 (>= 3.7),
+ python3-debian,
+ python3-apt,
+ python3-distro-info,
+ python3-nose,
+ python3-debianbts,
+ python3-yaml,
+ python3-mox3,
  golang-any,
  xmlto,
 Build-Depends-Indep:
@@ -37,8 +36,8 @@ Depends:
  lsb-release,
  lsof,
  mount,
- python-debian,
- ${python:Depends},
+ python3-debian,
+ ${python3:Depends},
  ${misc:Depends},
 Recommends:
  adequate
@@ -64,18 +63,18 @@ Depends:
  piuparts-common (<< ${source:Version}+),
  adduser,
  openssh-server,
- python-debianbts,
+ python3-debianbts,
  tango-icon-theme,
  xz-utils,
- python-yaml,
- python (>= 2.7),
- ${python:Depends},
+ python3-yaml,
+ python3 (>= 3.7),
+ ${python3:Depends},
  ${shlibs:Depends},
  ${misc:Depends},
 Recommends:
  apache2 | httpd,
  ghostscript,
- python-rpy2,
+ python3-rpy2,
  r-base-dev,
  r-recommended,
  devscripts,
@@ -99,8 +98,8 @@ Depends:
  openssh-client,
  screen,
  sudo,
- python (>= 2.7),
- ${python:Depends},
+ python3 (>= 3.7),
+ ${python3:Depends},
  ${misc:Depends},
 Suggests:
  schroot
@@ -116,10 +115,9 @@ Description: piuparts slave components
 Package: piuparts-common
 Architecture: all
 Depends:
- python-apt,
- python-distro-info,
- python-lzma,
- ${python:Depends},
+ python3-apt,
+ python3-distro-info,
+ ${python3:Depends},
  ${misc:Depends},
 Description: common piuparts components
  piupartslib, common library used by piuparts-master, -report, -analyze and

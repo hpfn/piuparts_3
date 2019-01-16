@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Copyright 2014 David Steele (dsteele@gmail.com)
 #
@@ -88,6 +88,7 @@ from collections import namedtuple, defaultdict
 class SummaryException(Exception):
     pass
 
+
 SUMMID = "Piuparts Package Test Results Summary"
 SUMMVER = "1.0"
 
@@ -97,27 +98,27 @@ FlagInfo = namedtuple('FlagInfo', ['word', 'priority', 'states'])
 
 flaginfo = {
     'F': FlagInfo('Failed', 0, ["failed-testing"]),
-            'X': FlagInfo('Blocked', 1, [
-                          "cannot-be-tested",
-                          "dependency-failed-testing",
-                          "dependency-cannot-be-tested",
-                          "dependency-does-not-exist",
-                          ]),
-            'W': FlagInfo('Waiting', 2, [
-                          "waiting-to-be-tested",
-                          "waiting-for-dependency-to-be-tested",
-                          ]),
-            'P': FlagInfo('Passed', 3, [
-                          "essential-required",
-                          "successfully-tested",
-                          ]),
-            '-': FlagInfo('Unknown', 4, [
-                          "does-not-exist",
-                          "unknown",
-                          ]),
+    'X': FlagInfo('Blocked', 1, [
+        "cannot-be-tested",
+        "dependency-failed-testing",
+        "dependency-cannot-be-tested",
+        "dependency-does-not-exist",
+    ]),
+    'W': FlagInfo('Waiting', 2, [
+        "waiting-to-be-tested",
+        "waiting-for-dependency-to-be-tested",
+    ]),
+    'P': FlagInfo('Passed', 3, [
+        "essential-required",
+        "successfully-tested",
+    ]),
+    '-': FlagInfo('Unknown', 4, [
+        "does-not-exist",
+        "unknown",
+    ]),
 }
 
-state2flg = dict([(y, x[0]) for x in flaginfo.iteritems() for y in x[1].states])
+state2flg = dict([(y, x[0]) for x in flaginfo.items() for y in x[1].states])
 
 
 def worst_flag(*flags):
@@ -126,7 +127,7 @@ def worst_flag(*flags):
     except KeyError:
         raise SummaryException("Unknown flag in " + flags.__repr__())
 
-    return(flag)
+    return (flag)
 
 
 def get_flag(state):
@@ -135,7 +136,7 @@ def get_flag(state):
     except KeyError:
         raise SummaryException("Unknown state - " + state)
 
-    return(flag)
+    return (flag)
 
 
 def new_summary():
@@ -146,15 +147,15 @@ def new_summary():
     dfltentry = ['-', 0, 'invalid url']
     pkgstruct = defaultdict(lambda: defaultdict(lambda: dfltentry))
 
-    return({
+    return ({
         "_id": SUMMID,
-               "_version": SUMMVER,
-               "_date": utcdate,
-               "_comment": "Debian Piuparts Package Results - "
-                            "https://salsa.debian.org/debian/piuparts/raw/"
-                            "develop/piupartslib/pkgsummary.py",
-               "_type": "source",
-               "packages": pkgstruct,
+        "_version": SUMMVER,
+        "_date": utcdate,
+        "_comment": "Debian Piuparts Package Results - "
+                    "https://salsa.debian.org/debian/piuparts/raw/"
+                    "develop/piupartslib/pkgsummary.py",
+        "_type": "source",
+        "packages": pkgstruct,
     })
 
 
@@ -231,6 +232,7 @@ def read_summary(fname):
 
     return result
 
+
 if __name__ == '__main__':
     import sys
 
@@ -240,4 +242,4 @@ if __name__ == '__main__':
     for pkg in summary['packages']:
         flag, blocked, url = summary['packages'][pkg][DEFSEC]
 
-        print pkg, flag, url, tooltip(summary, pkg)
+        print(pkg, flag, url, tooltip(summary, pkg))

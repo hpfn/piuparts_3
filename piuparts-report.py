@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Copyright 2005 Lars Wirzenius (liw@iki.fi)
@@ -25,7 +25,6 @@
 Lars Wirzenius <liw@iki.fi>
 """
 
-
 import os
 import sys
 import time
@@ -38,7 +37,7 @@ import hashlib
 import pickle
 import random
 import fcntl
-from urllib2 import HTTPError, URLError
+from urllib.error import HTTPError, URLError
 from collections import deque
 
 # if python-rpy2 ain't installed, we don't draw fancy graphs
@@ -48,17 +47,18 @@ try:
 except:
     pass
 
-import piupartslib
+from piupartslib.packagesdb import PackagesDB
+from piupartslib.conf import Config as PiupartsLibConfig
+from piupartslib.conf import DistroConfig
 from piupartslib.conf import MissingSection
-from piupartslib.dwke import *
-import piupartslib.pkgsummary as pkgsummary
+from piupartslib import pkgsummary
 
+from piupartslib.dwke import *
 
 CONFIG_FILE = "/etc/piuparts/piuparts.conf"
 DISTRO_CONFIG_FILE = "/etc/piuparts/distros.conf"
 KPR_DIRS = ('pass', 'bugged', 'affected', 'fail')
 TPL_EXT = '.tpl'
-
 
 PIUPARTS_VERSION = "__PIUPARTS_VERSION__"
 
@@ -245,7 +245,6 @@ HTML_HEADER = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
   <td class="containercell">
 """
 
-
 HTML_FOOTER = """
   </td>
  </tr>
@@ -276,7 +275,6 @@ HTML_FOOTER = """
 </html>
 """
 
-
 LOG_LIST_BODY_TEMPLATE = """
    <table class="righttable">
     <tr class="titlerow">
@@ -294,7 +292,6 @@ $logrows
    </table>
 """
 
-
 STATE_BODY_TEMPLATE = """
    <table class="righttable">
     <tr class="titlerow">
@@ -311,7 +308,6 @@ $list
     </tr>
    </table>
 """
-
 
 SECTION_INDEX_BODY_TEMPLATE = """
    <table class="righttable">
@@ -384,7 +380,6 @@ PKG_ERROR_TPL = \
 $BUG</li>
 """
 
-
 title_by_dir = {
     "pass": "PASSED piuparts logs",
     "fail": "Failed UNREPORTED piuparts logs",
@@ -394,7 +389,6 @@ title_by_dir = {
     "untestable": "UNTESTABLE packages",
 }
 
-
 desc_by_dir = {
     "pass": "Log files for packages that have PASSED testing.",
     "fail": "Log files for packages that have FAILED testing. " +
@@ -402,7 +396,7 @@ desc_by_dir = {
     "bugged": "Log files for packages that have FAILED testing. " +
               "Bugs have been reported, but not yet fixed.",
     "affected": "Log files for packages that have dependencies FAILED testing. " +
-              "Bugs have been reported, but not yet fixed.",
+                "Bugs have been reported, but not yet fixed.",
     "reserved": "Packages that are RESERVED for testing on a node in a " +
                 "distributed piuparts network.",
     "untestable": "Log files for packages that have are UNTESTABLE with " +
@@ -434,23 +428,31 @@ linktarget_by_template = [
     ("installs_over_symlink_issue.tpl", "but package installs something over existing symlinks"),
     ("broken_symlinks_issue.tpl", "but logfile contains 'broken symlinks'"),
     ("unknown_inadequate_issue.tpl", "but logfile contains unknown inadequate issues"),
-    ("boring_obsolete_conffile_file_inadequate_issue.tpl", "...and logfile contains tag from adequate 'obsolete-conffile-file'"),
-    ("boring_broken_symlink_file_inadequate_issue.tpl", "...and logfile contains tag from adequate 'broken-symlink-file'"),
-    ("bin_or_sbin_binary_requires_usr_lib_library_inadequate_issue.tpl", "but adequate found a binary in /bin or /sbin that requires a /usr/lib library"),
+    ("boring_obsolete_conffile_file_inadequate_issue.tpl",
+     "...and logfile contains tag from adequate 'obsolete-conffile-file'"),
+    ("boring_broken_symlink_file_inadequate_issue.tpl",
+     "...and logfile contains tag from adequate 'broken-symlink-file'"),
+    ("bin_or_sbin_binary_requires_usr_lib_library_inadequate_issue.tpl",
+     "but adequate found a binary in /bin or /sbin that requires a /usr/lib library"),
     ("incompatible_licenses_inadequate_issue.tpl", "but adequate found a license incompatibility"),
-    ("broken_binfmt_detector_inadequate_issue.tpl", "but adequate did not find the detector registered with update_binfmts"),
-    ("broken_binfmt_interpreter_inadequate_issue.tpl", "but adequate did not find the interpreter registered with update_binfmts"),
+    ("broken_binfmt_detector_inadequate_issue.tpl",
+     "but adequate did not find the detector registered with update_binfmts"),
+    ("broken_binfmt_interpreter_inadequate_issue.tpl",
+     "but adequate did not find the interpreter registered with update_binfmts"),
     ("missing_alternative_inadequate_issue.tpl", "but adequate found a missing alternative"),
     ("missing_copyright_file_inadequate_issue.tpl", "but adequate couldn't find a copyright file"),
     ("missing_pkgconfig-dependency_issue.tpl", "but adequate found a missing pkgconfig dependency"),
     ("program_name_collision_inadequate_issue.tpl", "but adequate found a program name collision"),
     ("py_file_not_bytecompiled_inadequate_issue.tpl", "but adequate found a .py file that is not byte-compiled"),
-    ("pyshared_file_not_bytecompiled_inadequate_issue.tpl", "but adequate found a .py file in /usr/share/pyshared that is not byte-compiled"),
+    ("pyshared_file_not_bytecompiled_inadequate_issue.tpl",
+     "but adequate found a .py file in /usr/share/pyshared that is not byte-compiled"),
     ("ldd_inadequate_issue.tpl", "but adequate failed to run ldd on a binary or library"),
     ("library_not_found_inadequate_issue.tpl", "but adequate couldn't find a required library"),
     ("undefined_symbol_inadequate_issue.tpl", "but adequate found an undefined symbol"),
-    ("symbol-size-mismatch_inadequate_issue.tpl", "but adequate found that a symbol has changed size since the package was built"),
-    ("missing-symbol-version-information_inadequate_issue.tpl", "but adequate found that a library is missing symbol version information"),
+    ("symbol-size-mismatch_inadequate_issue.tpl",
+     "but adequate found that a symbol has changed size since the package was built"),
+    ("missing-symbol-version-information_inadequate_issue.tpl",
+     "but adequate found that a library is missing symbol version information"),
     ("unknown_inadequate_issue.tpl", "but an unknown adequate issue was found"),
     ("inadequate_exit_issue.tpl", "but adequate exited inadequately"),
     ("packages_have_been_kept_back_issue.tpl", "but logfile contains 'packages have been kept back'"),
@@ -502,32 +504,32 @@ linktarget_by_template = [
 ]
 
 
-class Config(piupartslib.conf.Config):
+class Config(PiupartsLibConfig):
 
     def __init__(self, section="report", defaults_section=None):
         self.section = section
-        piupartslib.conf.Config.__init__(self, section,
-            {
-                "sections": "report",
-                "output-directory": "html",
-                "master-directory": ".",
-                "depends-sections": None,
-                "description": "",
-                "proxy": None,
-                "mirror": None,
-                "distro": None,
-                "area": None,
-                "arch": None,
-                "upgrade-test-distros": None,
-                "max-reserved": 1,
-                "doc-root": "/",
-                "known-problem-directory": "@sharedir@/piuparts/known_problems",
-                "exclude-known-problems": None,
-                "json-sections": "default",
-                "precedence": 1,
-                "web-host": "piuparts.debian.org",
-            },
-            defaults_section=defaults_section)
+        super().__init__(self, section,
+                         {
+                             "sections": "report",
+                             "output-directory": "html",
+                             "master-directory": ".",
+                             "depends-sections": None,
+                             "description": "",
+                             "proxy": None,
+                             "mirror": None,
+                             "distro": None,
+                             "area": None,
+                             "arch": None,
+                             "upgrade-test-distros": None,
+                             "max-reserved": 1,
+                             "doc-root": "/",
+                             "known-problem-directory": "@sharedir@/piuparts/known_problems",
+                             "exclude-known-problems": None,
+                             "json-sections": "default",
+                             "precedence": 1,
+                             "web-host": "piuparts.debian.org",
+                         },
+                         defaults_section=defaults_section)
 
 
 def setup_logging(log_level, log_file_name):
@@ -557,12 +559,12 @@ def html_protect(vstr):
 
 def is_bad_state(state):
     bad_states = [
-        #"successfully-tested",
+        # "successfully-tested",
         "failed-testing",
         "cannot-be-tested",
         # "essential-required",  # obsolete
-        #"waiting-to-be-tested",
-        #"waiting-for-dependency-to-be-tested",
+        # "waiting-to-be-tested",
+        # "waiting-for-dependency-to-be-tested",
         "dependency-failed-testing",
         "dependency-cannot-be-tested",
         "dependency-does-not-exist",
@@ -571,11 +573,11 @@ def is_bad_state(state):
         "unknown-preferred-alternative",  # obsolete
         "no-dependency-from-alternatives-exists",  # obsolete
         "outdated",
-        #"foreign:*",
+        # "foreign:*",
         "does-not-exist",
     ]
 
-    return(state in bad_states)
+    return (state in bad_states)
 
 
 def emphasize_reason(reason):
@@ -592,15 +594,15 @@ def source_subdir(source):
 
 
 def source_summary_url(web_host, doc_root, section, src_pkg):
-    return("https://%s%s/%s/source/%s/%s.html" %
-              (
-                  web_host,
-                  doc_root,
-                  section,
-                  source_subdir(src_pkg),
-                  src_pkg,
-              )
-           )
+    return ("https://%s%s/%s/source/%s/%s.html" %
+            (
+                web_host,
+                doc_root,
+                section,
+                source_subdir(src_pkg),
+                src_pkg,
+            )
+            )
 
 
 def maintainer_subdir(maintainer):
@@ -643,7 +645,7 @@ def update_file(source, target):
         except IOError as xxx_todo_changeme:
             (errno, strerror) = xxx_todo_changeme.args
             logging.error("failed to copy %s to %s: I/O error(%d): %s"
-                           % (source, target, errno, strerror))
+                          % (source, target, errno, strerror))
 
 
 def copy_logs(logs_by_dir, output_dir):
@@ -726,7 +728,7 @@ def write_template_html(filename, body, mapping={}, defer_if_unmodified=False, m
     if defer_if_unmodified and not filename in md5cache['old'] and os.path.exists(filename):
         # read the first 10 lines of the old file and look for a matching md5sum
         with open(filename, "r") as f:
-            lineno = 0
+            # lineno = 0
             for x in range(10):
                 line = f.readline()
                 if not line:
@@ -753,7 +755,7 @@ def write_template_html(filename, body, mapping={}, defer_if_unmodified=False, m
 
 def create_section_navigation(section_names, current_section, doc_root):
     tablerows = "<tr class=\"titlerow\"><td class=\"alerttitlecell\">Suite: <a href='%s/%s'>%s</a></td></tr>" \
-                 % (doc_root, current_section, current_section,)
+                % (doc_root, current_section, current_section,)
     tablerows += "<tr><td class=\"contentcell\"><a href=\"%s/%s/maintainer/\">by maintainer / uploader</a></td></tr>\n" \
                  % (doc_root, current_section)
     tablerows += "<tr><td class=\"contentcell\"><a href=\"%s/%s/source/\">by source package</a></td></tr>\n" \
@@ -761,7 +763,7 @@ def create_section_navigation(section_names, current_section, doc_root):
     tablerows += "<tr class=\"titlerow\"><td class=\"alerttitlecell\">all tested suites</td></tr>"
     for section in section_names:
         tablerows += ("<tr class=\"normalrow\"><td class=\"contentcell\"><a href='%s/%s'>%s</a></td></tr>\n") % \
-            (doc_root, html_protect(section), html_protect(section))
+                     (doc_root, html_protect(section), html_protect(section))
     return tablerows;
 
 
@@ -803,7 +805,7 @@ class Section:
     def __init__(self, section, master_directory, doc_root, packagedb_cache={}):
         self._config = Config(section=section, defaults_section="global")
         self._config.read(CONFIG_FILE)
-        self._distro_config = piupartslib.conf.DistroConfig(
+        self._distro_config = DistroConfig(
             DISTRO_CONFIG_FILE, self._config["mirror"])
         logging.debug("-------------------------------------------")
         logging.debug("Running section " + self._config.section)
@@ -812,7 +814,7 @@ class Section:
                                                                self._config.section))
         if not os.path.exists(self._section_directory):
             logging.debug("Warning: %s did not exist, now created. Did you ever let the slave work?"
-                           % self._section_directory)
+                          % self._section_directory)
             os.makedirs(self._section_directory)
 
         self._doc_root = doc_root
@@ -823,11 +825,11 @@ class Section:
         self._load_package_database(section, master_directory)
         self._binary_db = self._package_databases[section]
 
-        self._source_db = piupartslib.packagesdb.PackagesDB(prefix=self._section_directory)
+        self._source_db = PackagesDB(prefix=self._section_directory)
         self._source_db.load_packages_urls(
             self._distro_config.get_sources_urls(
                 self._config.get_distro(),
-                    self._config.get_area()))
+                self._config.get_area()))
         if self._config.get_distro() != self._config.get_final_distro():
             # take version numbers (or None) from final distro
             self._source_db.load_alternate_versions_from_packages_urls(
@@ -836,7 +838,7 @@ class Section:
                     self._config.get_area()))
 
         self._log_name_cache = {}
-        self._md5cache = { 'old': {}, 'new': {}, 'written': 0, 'unmodified': 0, 'refreshed': 0 }
+        self._md5cache = {'old': {}, 'new': {}, 'written': 0, 'unmodified': 0, 'refreshed': 0}
 
     def _load_package_database(self, section, master_directory):
         if section in self._package_databases:
@@ -852,7 +854,7 @@ class Section:
             # only cache the most recent base database
             self._packagedb_cache.clear()
         sectiondir = os.path.join(master_directory, section)
-        db = piupartslib.packagesdb.PackagesDB(prefix=sectiondir)
+        db = PackagesDB(prefix=sectiondir)
         self._package_databases[section] = db
         if config["depends-sections"]:
             deps = config["depends-sections"].split()
@@ -865,8 +867,8 @@ class Section:
         db.load_packages_urls(
             self._distro_config.get_packages_urls(
                 config.get_distro(),
-                    config.get_area(),
-                    config.get_arch()))
+                config.get_area(),
+                config.get_arch()))
         if config.get_distro() != config.get_final_distro():
             # take version numbers (or None) from final distro
             db.load_alternate_versions_from_packages_urls(
@@ -900,8 +902,8 @@ class Section:
                                 (html_protect(pathname),
                                  html_protect(version)))
             line = "<tr class=\"normalrow\"><td class=\"contentcell2\">%s</td><td class=\"contentcell2\">%s</td></tr>" % \
-                                (html_protect(package),
-                                 ", ".join(versions))
+                   (html_protect(package),
+                    ", ".join(versions))
             lines.append(line)
 
         if "FAIL" in preface:
@@ -911,16 +913,16 @@ class Section:
 
         self._write_template_html(
             filename,
-                LOG_LIST_BODY_TEMPLATE,
-                {
-                    "page_title": html_protect(title + " in " + self._config.section),
-                    "title": html_protect(title),
-                    "title_style": title_style,
-                    "preface": preface,
-                    "count": len(packages),
-                    "versioncount": version_count,
-                    "logrows": "".join(lines),
-                })
+            LOG_LIST_BODY_TEMPLATE,
+            {
+                "page_title": html_protect(title + " in " + self._config.section),
+                "title": html_protect(title),
+                "title_style": title_style,
+                "preface": preface,
+                "count": len(packages),
+                "versioncount": version_count,
+                "logrows": "".join(lines),
+            })
 
     def print_by_dir(self, output_directory, logs_by_dir):
         for vdir in logs_by_dir:
@@ -931,8 +933,8 @@ class Section:
                 package, version = basename[:-len(".log")].split("_")
                 vlist.append((os.path.join(vdir, basename), package, version))
             self.write_log_list_page(os.path.join(output_directory, vdir + ".html"),
-                                title_by_dir[vdir],
-                                desc_by_dir[vdir], vlist)
+                                     title_by_dir[vdir],
+                                     desc_by_dir[vdir], vlist)
 
     def find_links_to_logs(self, package_name, dirs, logs_by_dir):
         links = []
@@ -961,15 +963,15 @@ class Section:
 
             if package_name in self._log_name_cache[vdir]:
                 basename = package_name \
-                    + "_" \
-                         + self._log_name_cache[vdir][package_name] \
-                         + ".log"
+                           + "_" \
+                           + self._log_name_cache[vdir][package_name] \
+                           + ".log"
 
                 links.append("<a href=\"%s/%s\"%s>%s</a>" % (
                     self._doc_root,
-                        os.path.join(self._config.section, vdir, basename),
-                        style,
-                        html_protect(self._log_name_cache[vdir][package_name]),
+                    os.path.join(self._config.section, vdir, basename),
+                    style,
+                    html_protect(self._log_name_cache[vdir][package_name]),
                 ))
 
         return links
@@ -990,9 +992,9 @@ class Section:
         source_name = self._binary_db.get_package(package_name).source()
         link = "<a href=\"%s/%s/source/%s\">%s</a>" % (
             self._doc_root,
-                self._config.section,
-                source_subdir(source_name) + "/" + source_name + ".html",
-                html_protect(package_name))
+            self._config.section,
+            source_subdir(source_name) + "/" + source_name + ".html",
+            html_protect(package_name))
         return link
 
     def link_to_state_page(self, section, package_name, link_target):
@@ -1094,7 +1096,7 @@ class Section:
                         links += "<a href=\"#%s\">%s</a> " % (package, package)
                 else:
                     links = "&nbsp;"
-                rows +=   "<tr class=\"normalrow\">" \
+                rows += "<tr class=\"normalrow\">" \
                         + "<td class=\"labelcell\">%s:</td>" % state \
                         + "<td class=\"contentcell2\">%s</td>" % len(packages[state]) \
                         + "<td class=\"contentcell2\" colspan=\"4\">%s</td>" % links \
@@ -1121,17 +1123,17 @@ class Section:
 
             self._write_template_html(
                 os.path.join(maintainer_subdir_path, maintainer + ".html"),
-                    MAINTAINER_BODY_TEMPLATE,
-                    {
-                        "page_title": html_protect("Status of "
-                                          + maintainer
-                                          + " packages in "
-                                          + self._config.section),
-                        "maintainer": html_protect(maintainer + " in " + self._config.section),
-                        "distrolinks": distrolinks,
-                        "rows": rows + "".join([package_rows[state] for state in states]),
-                    },
-                    defer_if_unmodified=True)
+                MAINTAINER_BODY_TEMPLATE,
+                {
+                    "page_title": html_protect("Status of "
+                                               + maintainer
+                                               + " packages in "
+                                               + self._config.section),
+                    "maintainer": html_protect(maintainer + " in " + self._config.section),
+                    "distrolinks": distrolinks,
+                    "rows": rows + "".join([package_rows[state] for state in states]),
+                },
+                defer_if_unmodified=True)
 
     def create_source_summary(self, source, logs_by_dir):
         source_version = self._source_db.get_test_versions(source)
@@ -1144,12 +1146,12 @@ class Section:
         binaryrows = ""
         for binary in sorted([x.strip() for x in binaries.split(",") if x.strip()]):
             if not self._binary_db.has_package(binary):
-                    # udebs or binary packages for other architectures
-                    # The latter is a FIXME which needs parsing the Packages files from other archs too
-                binaryrows +=   "<tr class=\"normalrow\">" \
+                # udebs or binary packages for other architectures
+                # The latter is a FIXME which needs parsing the Packages files from other archs too
+                binaryrows += "<tr class=\"normalrow\">" \
                               + "<td class=\"labelcell\">Binary:</td>" \
                               + "<td class=\"contentcell2\">%s</td>" \
-                                % binary \
+                              % binary \
                               + "<td class=\"contentcell2\" colspan=\"4\">unknown package</td>" \
                               + "</tr>\n"
                 continue
@@ -1170,18 +1172,18 @@ class Section:
             archsuffix = ""
             if binary_arch == "all":
                 archsuffix = ":all"
-            binaryrows +=   "<tr class=\"normalrow\">" \
+            binaryrows += "<tr class=\"normalrow\">" \
                           + "<td class=\"labelcell\">Binary:</td>" \
                           + "<td class=\"contentcell2\">%s%s</td>" \
-                            % (binary, archsuffix) \
+                          % (binary, archsuffix) \
                           + "<td class=\"%s\">piuparts-result:</td>" \
-                            % state_style \
+                          % state_style \
                           + "<td class=\"contentcell2\">%s %s</td>" \
-                            % (self.link_to_state_page(self._config.section, binary, state),
-                               self.links_to_logs(binary, state, logs_by_dir)) \
+                          % (self.link_to_state_page(self._config.section, binary, state),
+                             self.links_to_logs(binary, state, logs_by_dir)) \
                           + "<td class=\"labelcell\">Version:</td>" \
                           + "<td class=\"contentcell2\">%s</td>" \
-                            % html_protect(binary_version) \
+                          % html_protect(binary_version) \
                           + "</tr>\n"
 
             if state not in ("successfully-tested", "essential-required"):
@@ -1197,53 +1199,53 @@ class Section:
             if failed:
                 source_state = "<img src=\"%s/images/weather-severe-alert.png\" alt=\"failed\">" % self._doc_root
 
-            sourcerows =    "<tr class=\"titlerow\">" \
-                          + "<td class=\"titlecell\" colspan=\"6\" id=\"%s\">%s in %s</td>" \
-                            % (package2id(source), source, self._config.section) \
-                          + "</tr>\n"
+            sourcerows = "<tr class=\"titlerow\">" \
+                         + "<td class=\"titlecell\" colspan=\"6\" id=\"%s\">%s in %s</td>" \
+                         % (package2id(source), source, self._config.section) \
+                         + "</tr>\n"
 
-            sourcerows +=   "<tr class=\"normalrow\">" \
+            sourcerows += "<tr class=\"normalrow\">" \
                           + "<td class=\"labelcell\">Source:</td>" \
                           + "<td class=\"contentcell2\">" \
-                            + "<a href=\"https://tracker.debian.org/%s\" target=\"_blank\">%s</a>" \
-                              % (source, html_protect(source)) \
-                            + "</td>" \
+                          + "<a href=\"https://tracker.debian.org/%s\" target=\"_blank\">%s</a>" \
+                          % (source, html_protect(source)) \
+                          + "</td>" \
                           + "<td class=\"labelcell\">piuparts summary:</td>" \
                           + "<td class=\"contentcell2\">%s</td>" \
-                            % source_state \
+                          % source_state \
                           + "<td class=\"labelcell\">Version:</td>" \
                           + "<td class=\"contentcell2\">%s</td>" \
-                            % html_protect(source_version) \
+                          % html_protect(source_version) \
                           + "</tr>\n"
 
             sourcerows += "<tr class=\"normalrow\">" \
                           + "<td class=\"labelcell\">Maintainer:</td>" \
                           + "<td class=\"contentcell2\" colspan=\"5\">%s</td>" \
-                            % self.link_to_maintainer_summary(maintainer) \
+                          % self.link_to_maintainer_summary(maintainer) \
                           + "</tr>\n"
 
             if uploaders:
                 sourcerows += "<tr class=\"normalrow\">" \
                               + "<td class=\"labelcell\">Uploaders:</td>" \
                               + "<td class=\"contentcell2\" colspan=\"5\">%s</td>" \
-                                % self.link_to_uploaders(uploaders) \
+                              % self.link_to_uploaders(uploaders) \
                               + "</tr>\n"
 
             source_summary_page_path = os.path.join(self._output_directory,
                                                     "source",
-                                                     source_subdir(source))
+                                                    source_subdir(source))
 
             if not os.path.exists(source_summary_page_path):
                 os.makedirs(source_summary_page_path)
 
             self._write_template_html(
-                    os.path.join(source_summary_page_path, (source + ".html")),
-                    BASIC_BODY_TEMPLATE,
-                    {
-                        "page_title": html_protect("Status of source package " + source + " in " + self._config.section),
-                        "rows": sourcerows + binaryrows,
-                    },
-                    defer_if_unmodified=True)
+                os.path.join(source_summary_page_path, (source + ".html")),
+                BASIC_BODY_TEMPLATE,
+                {
+                    "page_title": html_protect("Status of source package " + source + " in " + self._config.section),
+                    "rows": sourcerows + binaryrows,
+                },
+                defer_if_unmodified=True)
 
             # return parsable values
             if success:
@@ -1266,11 +1268,11 @@ class Section:
         sources_data = []
         for source in src_names:
             (sourcerows, binaryrows, source_state, maintainer, uploaders) = \
-                               self.create_source_summary(source, logs_by_dir)
+                self.create_source_summary(source, logs_by_dir)
 
             if source_state != "udeb":
                 source_version = self._source_db.get_test_versions(source)
-                source_data = {};
+                source_data = {}
                 source_data["source"] = source
                 source_data["state"] = source_state
                 source_data["version"] = source_version
@@ -1288,7 +1290,7 @@ class Section:
 
         create_file(os.path.join(self._output_directory, "sources.txt"), sources)
         create_file(os.path.join(self._output_directory, "sources.yaml"),
-            yaml.dump(sources_data, default_flow_style=False))
+                    yaml.dump(sources_data, default_flow_style=False))
 
         self.create_maintainer_summaries(maintainers, source_binary_rows)
 
@@ -1322,9 +1324,9 @@ class Section:
         stats_html = "<tr class=\"normalrow\"> " \
                      + "<td class=\"contentcell2\" colspan=\"3\">" \
                      + "<a href=\"%s\">" \
-                       % "states.png" \
+                     % "states.png" \
                      + "<img src=\"%s\" width=\"100%%\" alt=\"Binary package states in %s\">" \
-                       % ("states.png", self._config.section) \
+                     % ("states.png", self._config.section) \
                      + "</a>" \
                      + "<br>(<a href=\"counts.txt\">Source</a>)\n" \
                      + "</td></tr>\n"
@@ -1354,12 +1356,12 @@ class Section:
                     rows = self._problem_reports[template]
 
                     self._write_template_html(
-                            os.path.join(self._output_directory, template[:-len(".tpl")] + ".html"),
-                            BASIC_BODY_TEMPLATE,
-                            {
-                                "page_title": html_protect("Packages in state " + state + " " + linktarget),
-                                "rows": rows,
-                            })
+                        os.path.join(self._output_directory, template[:-len(".tpl")] + ".html"),
+                        BASIC_BODY_TEMPLATE,
+                        {
+                            "page_title": html_protect("Packages in state " + state + " " + linktarget),
+                            "rows": rows,
+                        })
                     if state == "failed-testing":
                         count_bugged = string.count(rows, '"bugged/')
                         count_affected = string.count(rows, '"affected/')
@@ -1378,11 +1380,11 @@ class Section:
                         if count_passed > 0:
                             substats += ": %s passed" % count_passed
                     link += "<li><a href=%s>%s</a>%s</li>\n" % \
-                             (
-                                 template[:-len(".tpl")] + ".html",
-                                 linktarget,
-                                 substats,
-                             )
+                            (
+                                template[:-len(".tpl")] + ".html",
+                                linktarget,
+                                substats,
+                            )
 
         link += "</ul>"
         if link == "<ul>\n</ul>":
@@ -1401,7 +1403,8 @@ class Section:
                 analysis = self.create_and_link_to_analysises(state)
             tablerows += ("<tr class=\"normalrow\"><td class=\"contentcell2\"><a href='state-%s.html'>%s</a>%s</td>" +
                           "<td class=\"contentcell2\">%d</td><td class=\"contentcell2\">%s</td></tr>\n") % \
-                          (html_protect(state), html_protect(state), analysis, len(self._binary_db.get_pkg_names_in_state(state)),
+                         (html_protect(state), html_protect(state), analysis,
+                          len(self._binary_db.get_pkg_names_in_state(state)),
                           dir_link)
         try:
             tablerows += self.make_section_stats_graph();
@@ -1431,14 +1434,14 @@ class Section:
             description = self._config["description"]
 
         self._write_template_html(
-                os.path.join(self._output_directory, "index.html"),
-                SECTION_INDEX_BODY_TEMPLATE,
-                {
-                    "page_title": html_protect(self._config.section + " statistics"),
-                    "description": html_protect(description),
-                    "tablerows": tablerows,
-                    "packagesurl": "<br>".join([html_protect(url) for url in self._binary_db.get_urls()]),
-                })
+            os.path.join(self._output_directory, "index.html"),
+            SECTION_INDEX_BODY_TEMPLATE,
+            {
+                "page_title": html_protect(self._config.section + " statistics"),
+                "description": html_protect(description),
+                "tablerows": tablerows,
+                "packagesurl": "<br>".join([html_protect(url) for url in self._binary_db.get_urls()]),
+            })
 
     def _show_providers(self, dep):
         providers = self._binary_db.get_providers(dep)
@@ -1447,7 +1450,7 @@ class Section:
             vlist += "\n<ul>\n"
             for provider in providers:
                 vlist += "<li>provider %s is %s</li>\n" % \
-                          (self.link_to_state_page(self._config.section, provider, provider),
+                         (self.link_to_state_page(self._config.section, provider, provider),
                           emphasize_reason(html_protect(self._binary_db.get_package_state(provider))))
             vlist += "</ul>\n"
         return vlist
@@ -1471,8 +1474,8 @@ class Section:
 
             for package in packages:
                 vlist += "<li id=\"%s\">%s" % (
-                                         package2id(package["Package"]),
-                                         self.link_to_source_summary(package["Package"]))
+                    package2id(package["Package"]),
+                    self.link_to_source_summary(package["Package"]))
                 if package["Architecture"] == "all":
                     vlist += ":all"
                 if package.source_version() != self._source_db.get_version(package.source()):
@@ -1487,15 +1490,17 @@ class Section:
                     for alternatives in all_deps:
                         dep = alternatives[0]
                         vlist += "<li>dependency %s is %s" % \
-                                  (self.link_to_state_page(self._config.section, dep, dep),
-                                  emphasize_reason(html_protect(self._binary_db.get_package_state(dep, resolve_virtual=False))))
+                                 (self.link_to_state_page(self._config.section, dep, dep),
+                                  emphasize_reason(
+                                      html_protect(self._binary_db.get_package_state(dep, resolve_virtual=False))))
                         vlist += self._show_providers(dep)
                         if len(alternatives) > 1:
                             vlist += "\n<ul>\n"
                             for dep in alternatives[1:]:
                                 vlist += "<li>alternative dependency %s is %s" % \
-                                          (self.link_to_state_page(self._config.section, dep, dep),
-                                          emphasize_reason(html_protect(self._binary_db.get_package_state(dep, resolve_virtual=False))))
+                                         (self.link_to_state_page(self._config.section, dep, dep),
+                                          emphasize_reason(html_protect(
+                                              self._binary_db.get_package_state(dep, resolve_virtual=False))))
                                 vlist += self._show_providers(dep)
                                 vlist += "</li>\n"
                             vlist += "</ul>\n"
@@ -1504,14 +1509,14 @@ class Section:
                 vlist += "</li>\n"
 
             self._write_template_html(
-                    os.path.join(self._output_directory, "state-%s.html" % state),
-                    STATE_BODY_TEMPLATE,
-                    {
-                                        "page_title": html_protect("Packages in state " + state + " in " + self._config.section),
-                                        "state": html_protect(state),
-                                        "list": vlist,
-                                        "aside": aside,
-                    })
+                os.path.join(self._output_directory, "state-%s.html" % state),
+                STATE_BODY_TEMPLATE,
+                {
+                    "page_title": html_protect("Packages in state " + state + " in " + self._config.section),
+                    "state": html_protect(state),
+                    "list": vlist,
+                    "aside": aside,
+                })
 
     def archive_logfile(self, vdir, log):
         archivedir = os.path.join("archive", vdir)
@@ -1584,15 +1589,14 @@ class Section:
         logging.debug("Writing state pages")
         self.write_state_pages()
 
-        logging.debug("Wrote %d out of %d html files, refreshed %d out of %d unmodified files" % ( \
-                self._md5cache['written'], len(self._md5cache['new']),
-                self._md5cache['refreshed'], self._md5cache['unmodified']))
+        logging.debug("Wrote %d out of %d html files, refreshed %d out of %d unmodified files" % (
+            self._md5cache['written'], len(self._md5cache['new']),
+            self._md5cache['refreshed'], self._md5cache['unmodified']))
         with open(md5cachefile, "w") as f:
             pickle.dump(self._md5cache['new'], f)
 
         logging.debug("Removing old log files")
         remove_old_logs(logs_by_dir, self._output_directory)
-
 
     def generate_summary(self, web_host):
         summary_path = os.path.join(self._output_directory, "summary.json")
@@ -1625,8 +1629,8 @@ class Section:
                     srcver = self._binary_db.get_package(pkgname).source_version()
                     latest_srcver = self._source_db.get_test_versions(srcpkg)
                     url = source_summary_url(
-                              web_host, self._doc_root,
-                              self._config.section, srcpkg)
+                        web_host, self._doc_root,
+                        self._config.section, srcpkg)
 
                     if (srcver != latest_srcver):
                         # if the binary package is cruft, we don't add it to
@@ -1635,8 +1639,8 @@ class Section:
                         source_todo[srcpkg] = url
                     else:
                         pkgsummary.add_summary(
-                                       summary, reporting_section, srcpkg,
-                                       flag, block_cnt, url)
+                            summary, reporting_section, srcpkg,
+                            flag, block_cnt, url)
                         source_done[srcpkg] = 1
                 for srcpkg in source_todo:
                     # source packages that only have outdated binaries are
@@ -1644,8 +1648,8 @@ class Section:
                     # (waiting-to-be-tested)
                     if srcpkg not in source_done:
                         pkgsummary.add_summary(
-                                       summary, reporting_section, srcpkg,
-                                       'W', 0, source_todo[srcpkg])
+                            summary, reporting_section, srcpkg,
+                            'W', 0, source_todo[srcpkg])
 
             pkgsummary.write_summary(summary, summary_path)
 
@@ -1656,7 +1660,7 @@ class Section:
 
         self._section_names = section_names
         self._section_navigation = create_section_navigation(
-                self._section_names, self._config.section, self._doc_root)
+            self._section_names, self._config.section, self._doc_root)
         self._output_directory = os.path.abspath(os.path.join(output_directory, self._config.section))
         if not os.path.exists(self._output_directory):
             os.makedirs(self._output_directory)
@@ -1701,6 +1705,7 @@ def generate_global_summary(dir, sections):
     summary_path = os.path.join(dir, json_name)
     pkgsummary.write_summary(summary, summary_path)
 
+
 # START detect_well_known_errors
 
 
@@ -1713,7 +1718,6 @@ def get_bug_text(logpath):
 
 
 def populate_tpl(tmpl, vals):
-
     for key in vals:
         tmpl = re.sub("\$%s" % key, str(vals[key]), tmpl)
 
@@ -1721,7 +1725,6 @@ def populate_tpl(tmpl, vals):
 
 
 def dwke_update_tpl(section, problem, failures, ftpl, ptpl, pkgsdb, srcdb):
-
     pkg_text = ""
     bugged_section = False
     for failure in failures:
@@ -1741,24 +1744,24 @@ def dwke_update_tpl(section, problem, failures, ftpl, ptpl, pkgsdb, srcdb):
         log = os.path.join(failure.where, failure.pkgspec + LOG_EXT)
 
         pkg_text += populate_tpl(ftpl, {
-                                'LOG': log,
-                                'PACKAGE': bin_pkg,
-                                'ARCH': bin_arch,
-                                'BUG': get_bug_text(log),
-                                'RDEPS': rdep_cnt,
-                                'SPKG': src_pkg,
-                                'SSUBDIR': source_subdir(src_pkg),
-                                'SECTION': section,
+            'LOG': log,
+            'PACKAGE': bin_pkg,
+            'ARCH': bin_arch,
+            'BUG': get_bug_text(log),
+            'RDEPS': rdep_cnt,
+            'SPKG': src_pkg,
+            'SSUBDIR': source_subdir(src_pkg),
+            'SECTION': section,
         })
 
     if len(pkg_text):
         return populate_tpl(ptpl, {
-                                'HEADER': problem.HEADER,
-                                'SECTION': section,
-                                'HELPTEXT': problem.HELPTEXT,
-                                'COMMAND': problem.get_command(),
-                                'PACKAGE_LIST': pkg_text,
-                                'COUNT': len(failures),
+            'HEADER': problem.HEADER,
+            'SECTION': section,
+            'HELPTEXT': problem.HELPTEXT,
+            'COMMAND': problem.get_command(),
+            'PACKAGE_LIST': pkg_text,
+            'COUNT': len(failures),
         })
     return ""
 
@@ -1780,6 +1783,7 @@ def dwke_get_failures(pkgsdb, problem_list):
             logging.info("%7d %s" % (pcount, prob.name))
 
     return failures
+
 
 # END detect_well_known_errors
 
@@ -1839,7 +1843,7 @@ def main():
 
         packagedb_cache = {}
         create_file(os.path.join(output_directory, "sections.yaml"),
-            yaml.dump(section_names, default_flow_style=False))
+                    yaml.dump(section_names, default_flow_style=False))
         todo = deque([(s, 0) for s in process_section_names])
         while len(todo):
             (section_name, next_try) = todo.popleft()
@@ -1880,32 +1884,33 @@ def main():
             else:
                 page_title = "How to file bugs based on piuparts.d.o results"
             write_template_html(
-                    os.path.join(output_directory, page + ".html"),
-                    INDEX_BODY,
-                    {
-                                   "page_title": page_title,
-                                   "section_navigation": section_navigation,
-                                   "doc_root": doc_root,
-                    })
+                os.path.join(output_directory, page + ".html"),
+                INDEX_BODY,
+                {
+                    "page_title": page_title,
+                    "section_navigation": section_navigation,
+                    "doc_root": doc_root,
+                })
         # overview page
         rows = "<tr>"
         counter = 0
         for section in section_names:
             counter += 1
-            rows += ("<td><a href=\"/%s/\"><img src=\"/%s/states.png\" width=\"99%%\" alt=\"Binary package states in %s\"></a></td>") % \
-                (section, section, section)
+            rows += (
+                        "<td><a href=\"/%s/\"><img src=\"/%s/states.png\" width=\"99%%\" alt=\"Binary package states in %s\"></a></td>") % \
+                    (section, section, section)
             if counter % 4 == 0:
                 rows += "</tr><tr>"
         rows += "</tr>"
         write_template_html(
-                os.path.join(output_directory, "overview.html"),
-                BASIC_BODY_TEMPLATE,
-                {
-                               "page_title": "Overview of suites tested by piuparts.debian.org",
-                               "section_navigation": section_navigation,
-                               "doc_root": doc_root,
-                               "rows": rows,
-                })
+            os.path.join(output_directory, "overview.html"),
+            BASIC_BODY_TEMPLATE,
+            {
+                "page_title": "Overview of suites tested by piuparts.debian.org",
+                "section_navigation": section_navigation,
+                "doc_root": doc_root,
+                "rows": rows,
+            })
         # create graph about bugs filed
         try:
             make_bts_stats_graph(master_directory, output_directory);

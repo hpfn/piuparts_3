@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Copyright 2005 Lars Wirzenius (liw@iki.fi)
@@ -23,23 +23,22 @@
 Lars Wirzenius <liw@iki.fi>
 """
 
-
 import sys
 import logging
 import os
 import fcntl
 import time
 import random
-from urllib2 import URLError
+from urllib.error import URLError
 
-import piupartslib
+from piupartslib.conf import Config as PiupartsLibConfig
+from piupartslib.conf import DistroConfig
 from piupartslib.packagesdb import LogfileExists
+from piupartslib.packagesdb import PackagesDB
 from piupartslib.conf import MissingSection
-
 
 CONFIG_FILE = "/etc/piuparts/piuparts.conf"
 DISTRO_CONFIG_FILE = "/etc/piuparts/distros.conf"
-
 
 log_handler = None
 
@@ -63,22 +62,22 @@ def timestamp():
     return time.strftime("[%Y-%m-%d %H:%M:%S]")
 
 
-class Config(piupartslib.conf.Config):
+class Config(PiupartsLibConfig):
 
     def __init__(self, section="master", defaults_section=None):
-        piupartslib.conf.Config.__init__(self, section,
-                                         {
-                                         "log-file": None,
-                                         "master-directory": ".",
-                                         "proxy": None,
-                                         "mirror": None,
-                                         "distro": None,
-                                         "area": None,
-                                         "arch": None,
-                                         "upgrade-test-distros": None,
-                                         "depends-sections": None,
-                                         },
-                                         defaults_section=defaults_section)
+        super().__init__(self, section,
+                         {
+                             "log-file": None,
+                             "master-directory": ".",
+                             "proxy": None,
+                             "mirror": None,
+                             "distro": None,
+                             "area": None,
+                             "arch": None,
+                             "upgrade-test-distros": None,
+                             "depends-sections": None,
+                         },
+                         defaults_section=defaults_section)
 
 
 class CommandSyntaxError(Exception):
@@ -129,7 +128,7 @@ class Protocol:
 class Master(Protocol):
 
     def __init__(self, input, output):
-        Protocol.__init__(self, input, output)
+        super().__init__(self, input, output)
         self._commands = {
             "section": self._switch_section,
             "recycle": self._recycle,
@@ -189,7 +188,7 @@ class Master(Protocol):
 
         # start with a dummy _binary_db (without Packages file), sufficient
         # for submitting finished logs
-        self._binary_db = piupartslib.packagesdb.PackagesDB(prefix=section)
+        self._binary_db = PackagesDB(prefix=section)
 
         return True
 
@@ -207,8 +206,8 @@ class Master(Protocol):
 
         config = Config(section=section, defaults_section="global")
         config.read(CONFIG_FILE)
-        distro_config = piupartslib.conf.DistroConfig(DISTRO_CONFIG_FILE, config["mirror"])
-        db = piupartslib.packagesdb.PackagesDB(prefix=section)
+        distro_config = DistroConfig(DISTRO_CONFIG_FILE, config["mirror"])
+        db = PackagesDB(prefix=section)
         if self._recycle_mode and self._section == section:
             db.enable_recycling()
         self._package_databases[section] = db
@@ -220,8 +219,8 @@ class Master(Protocol):
         db.load_packages_urls(
             distro_config.get_packages_urls(
                 config.get_distro(),
-                    config.get_area(),
-                    config.get_arch()))
+                config.get_area(),
+                config.get_arch()))
         if config.get_distro() != config.get_final_distro():
             # take version numbers (or None) from final distro
             db.load_alternate_versions_from_packages_urls(
@@ -427,6 +426,7 @@ def main():
         logging.error("ABORT: URLError: " + str(e.reason))
 
     logging.debug(timestamp() + " disconnected")
+
 
 if __name__ == "__main__":
     main()

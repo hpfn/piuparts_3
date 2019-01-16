@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Copyright 2005 Lars Wirzenius (liw@iki.fi)
@@ -31,27 +31,25 @@ more usage information.
 Lars Wirzenius <liw@iki.fi>
 """
 
-
 VERSION = "__PIUPARTS_VERSION__"
-
 
 import distro_info
 import time
 import logging
 import optparse
 import sys
-import commands
+# import commands
 import tempfile
 import shutil
 import os
-import tarfile
+# import tarfile
 import stat
 import re
 import json
 import pickle
 import subprocess
 import traceback
-import urllib
+# import urllib
 import uuid
 import apt_pkg
 import pipes
@@ -63,7 +61,7 @@ try:
 except ImportError:
     from debian_bundle import deb822
 
-import piupartslib.conf
+from piupartslib.conf import DistroConfig
 
 apt_pkg.init_system()
 
@@ -71,7 +69,6 @@ DISTRO_CONFIG_FILE = "/etc/piuparts/distros.conf"
 
 
 class Defaults:
-
     """Default settings which depend on flavor of Debian.
 
     Some settings, such as the default mirror and distribution, depend on
@@ -126,12 +123,12 @@ class UbuntuDefaults(Defaults):
 
 
 class DefaultsFactory:
-
     """Instantiate the right defaults class."""
 
     def guess_flavor(self):
         p = subprocess.Popen(["lsb_release", "-i", "-s"],
-                             stdout=subprocess.PIPE)
+                             stdout=subprocess.PIPE,
+                             encoding='utf-8')
         stdout, stderr = p.communicate()
         return stdout.strip().lower()
 
@@ -147,7 +144,6 @@ class DefaultsFactory:
 
 
 class Settings:
-
     """Global settings for this program."""
 
     def __init__(self):
@@ -222,7 +218,7 @@ class Settings:
             # system state
             "/boot/grub/",
             "/etc/X11/",
-            "/etc/X11/Xwrapper.config",         #859929
+            "/etc/X11/Xwrapper.config",  # 859929
             "/etc/X11/default-display-manager",
             "/etc/aliases",
             "/etc/aliases.db",
@@ -333,20 +329,21 @@ class Settings:
             # actually, only modification should be permitted here, but not creation/removal
             "/var/log/fontconfig.log",
             # home directories of system accounts
-            "/var/lib/debian-security-support/",    # #749317
+            "/var/lib/debian-security-support/",  # #749317
             "/var/lib/gozerbot/",
-            "/var/lib/nagios/",         # nagios* (#668756)
-            "/var/lib/onioncat/",       # onioncat
-            "/var/lib/pkcs11proxyd/",   # caml-crush-server (#810703)
+            "/var/lib/nagios/",  # nagios* (#668756)
+            "/var/lib/onioncat/",  # onioncat
+            "/var/lib/pkcs11proxyd/",  # caml-crush-server (#810703)
             "/var/lib/rbldns/",
-            "/var/lib/sreview/",        # sreview (#905500)
-            "/var/spool/powerdns/",     # pdns-server (#531134), pdns-recursor (#531135)
+            "/var/lib/sreview/",  # sreview (#905500)
+            "/var/spool/powerdns/",  # pdns-server (#531134), pdns-recursor (#531135)
             # work around broken symlinks
             "/etc/modules-load.d/modules.conf",  # -> ../modules (target obsoleted by modules-load.d)
             "/etc/sysctl.d/99-sysctl.conf",  # -> ../sysctl.conf (target obsoleted by sysctl.d)
             "/usr/lib/python2.6/dist-packages/python-support.pth",  # 635493 and #385775
             "/usr/lib/python2.7/dist-packages/python-support.pth",
-            "/usr/share/texmf/ls-R",  # -> /var/lib/texmf/ls-R-TEXMFMAIN (link owned by tex-common, target created with mktexlsr from texlive-binaries)
+            "/usr/share/texmf/ls-R",
+            # -> /var/lib/texmf/ls-R-TEXMFMAIN (link owned by tex-common, target created with mktexlsr from texlive-binaries)
             # work around #316521 dpkg: incomplete cleanup of empty directories
             "/etc/apache2/",
             "/etc/apache2/conf.d/",
@@ -422,7 +419,6 @@ class Settings:
 
 
 settings = Settings()
-
 
 on_panic_hooks = {}
 counter = 0
@@ -534,26 +530,27 @@ def run(command, ignore_errors=False, timeout=0):
     logging.debug("Starting command: %s" % command)
     env = os.environ.copy()
     for var in ["LANG",
-            "LANGUAGE",
-            "LC_CTYPE",
-            "LC_NUMERIC",
-            "LC_TIME",
-            "LC_COLLATE",
-            "LC_MONETARY",
-            "LC_MESSAGES",
-            "LC_PAPER",
-            "LC_NAME",
-            "LC_ADDRESS",
-            "LC_TELEPHONE",
-            "LC_MEASUREMENT",
-            "LC_IDENTIFICATION",
-            "LC_ALL"]:
+                "LANGUAGE",
+                "LC_CTYPE",
+                "LC_NUMERIC",
+                "LC_TIME",
+                "LC_COLLATE",
+                "LC_MONETARY",
+                "LC_MESSAGES",
+                "LC_PAPER",
+                "LC_NAME",
+                "LC_ADDRESS",
+                "LC_TELEPHONE",
+                "LC_MEASUREMENT",
+                "LC_IDENTIFICATION",
+                "LC_ALL"]:
         if var in env:
             del env[var]
     env["PIUPARTS_OBJECTS"] = ' '.join(str(vobject) for vobject in settings.testobjects)
     devnull = open('/dev/null', 'r')
     p = subprocess.Popen(command, env=env, stdin=devnull,
-                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         encoding='utf-8')
     output = ""
     excessive_output = False
     if timeout > 0:
@@ -753,8 +750,8 @@ def is_broken_symlink(root, dirpath, filename):
 
 FileInfo = namedtuple('FileInfo', ['st', 'target', 'user', 'group'])
 
-class Chroot:
 
+class Chroot:
     """A chroot for testing things in."""
 
     def __init__(self):
@@ -962,16 +959,16 @@ class Chroot:
     def run(self, command, ignore_errors=False):
         prefix = []
         if settings.eatmydata and os.path.isfile(os.path.join(self.name,
-                                                 'usr/bin/eatmydata')):
+                                                              'usr/bin/eatmydata')):
             prefix.append('eatmydata')
         if settings.schroot:
             return run(
                 ["schroot", "--preserve-environment", "--run-session", "--chroot", "session:" +
-                    self.schroot_session, "--directory", "/", "-u", "root", "--"] + prefix + command,
-                   ignore_errors=ignore_errors, timeout=settings.max_command_runtime)
+                 self.schroot_session, "--directory", "/", "-u", "root", "--"] + prefix + command,
+                ignore_errors=ignore_errors, timeout=settings.max_command_runtime)
         elif settings.docker_image:
             return run(
-                ['docker', 'exec', self.docker_container,] + prefix + command,
+                ['docker', 'exec', self.docker_container, ] + prefix + command,
                 ignore_errors=ignore_errors,
                 timeout=settings.max_command_runtime,
             )
@@ -1033,7 +1030,8 @@ class Chroot:
             proxy = None
             pat = re.compile(r"^Acquire::http::Proxy\s+\"([^\"]+)\"", re.I)
             p = subprocess.Popen(["apt-config", "dump"],
-                                 stdout=subprocess.PIPE)
+                                 stdout=subprocess.PIPE,
+                                 encoding='utf-8')
             stdout, _ = p.communicate()
             if stdout:
                 for line in stdout.split("\n"):
@@ -1057,7 +1055,8 @@ class Chroot:
             lines.append('force-unsafe-io\n')
         if settings.dpkg_force_confdef:
             lines.append('force-confdef\n')
-            logging.info("Warning: dpkg has been configured to use the force-confdef option. This will hide problems, see #466118.")
+            logging.info(
+                "Warning: dpkg has been configured to use the force-confdef option. This will hide problems, see #466118.")
         if lines:
             self.mkdir_p("etc/dpkg/dpkg.cfg.d")
             create_file(self.relative("etc/dpkg/dpkg.cfg.d/piuparts"),
@@ -1139,7 +1138,7 @@ class Chroot:
         for bindmount in settings.bindmounts:
             self.mount(bindmount, bindmount, opts="bind")
         if not os.path.exists(self.name + '/dev/null'):
-            run(['mknod', '-m' ,'666', self.name + '/dev/null', 'c', '1', '3'])
+            run(['mknod', '-m', '666', self.name + '/dev/null', 'c', '1', '3'])
 
     def remember_available_md5(self):
         """Keep a history of 'apt-cache dumpavail | md5sum' after initial
@@ -1358,7 +1357,8 @@ class Chroot:
         """Get current package selections in a chroot."""
         # "${Status}" emits three columns, e.g. "install ok installed"
         # "${binary:Package}" requires a multi-arch dpkg, so fall back to "${Package}" on older versions
-        (status, output) = self.run(["dpkg-query", "-W", "-f", "${Status}\\t${binary:Package}\\t${Package}\\t${Version}\\n"])
+        (status, output) = self.run(
+            ["dpkg-query", "-W", "-f", "${Status}\\t${binary:Package}\\t${Package}\\t${Version}\\n"])
         vdict = {}
         for line in [line for line in output.split("\n") if line.strip()]:
             token = line.split()
@@ -1402,24 +1402,24 @@ class Chroot:
             logging.info("Running adequate version %s now." % output.strip())
             adequate_tags = [
                 'bin-or-sbin-binary-requires-usr-lib-library',
-                    'broken-binfmt-detector',
-                    'broken-binfmt-interpreter',
-                    'incompatible-licenses',
-                    'ldd-failure',
-                    'library-not-found',
-                    'missing-alternative',
-                    'missing-copyright-file',
-                    'missing-pkgconfig-dependency',
-                    'missing-symbol-version-information',
-                    'program-name-collision',
-                    'py-file-not-bytecompiled',
-                    'pyshared-file-not-bytecompiled',
-                    'symbol-size-mismatch',
-                    'undefined-symbol',
+                'broken-binfmt-detector',
+                'broken-binfmt-interpreter',
+                'incompatible-licenses',
+                'ldd-failure',
+                'library-not-found',
+                'missing-alternative',
+                'missing-copyright-file',
+                'missing-pkgconfig-dependency',
+                'missing-symbol-version-information',
+                'program-name-collision',
+                'py-file-not-bytecompiled',
+                'pyshared-file-not-bytecompiled',
+                'symbol-size-mismatch',
+                'undefined-symbol',
             ]
             boring_tags = [
                 'obsolete-conffile',
-                    'broken-symlink',
+                'broken-symlink',
             ]
             ignored_tags = []
             (status, output) = run(["adequate", "--root", self.name] + packages, ignore_errors=True)
@@ -1443,9 +1443,11 @@ class Chroot:
                 logging.error("%s: Inadequate results from running adequate!\n%s" %
                               (error_code, indent_string(output.replace(self.name, ""))))
                 if inadequate_results:
-                    logging.error("%s: Running adequate resulted in inadequate tags found: %s" % (error_code, inadequate_results))
+                    logging.error(
+                        "%s: Running adequate resulted in inadequate tags found: %s" % (error_code, inadequate_results))
                 if boring_results:
-                    logging.error("%s: Running adequate resulted in less interesting tags found: %s" % (error_code, boring_results))
+                    logging.error("%s: Running adequate resulted in less interesting tags found: %s" % (
+                        error_code, boring_results))
                 if not boring_results and not inadequate_results:
                     logging.error("%s: Found unknown tags running adequate." % error_code)
                 if status != 0:
@@ -1524,24 +1526,24 @@ class Chroot:
         changes = diff_selections(self, selections)
         deps = {}
         nondeps = {}
-        for name, state_version in changes.iteritems():
+        for name, state_version in changes.items():
             if name in packages:
                 nondeps[name] = state_version
             else:
                 deps[name] = state_version
 
-        deps_to_remove = [name for name, (state, version) in deps.iteritems()
+        deps_to_remove = [name for name, (state, version) in deps.items()
                           if state == "remove"]
-        deps_to_purge = [name for name, (state, version) in deps.iteritems()
+        deps_to_purge = [name for name, (state, version) in deps.items()
                          if state == "purge"]
-        nondeps_to_remove = [name for name, (state, version) in nondeps.iteritems()
+        nondeps_to_remove = [name for name, (state, version) in nondeps.items()
                              if state == "remove"]
-        nondeps_to_purge = [name for name, (state, version) in nondeps.iteritems()
+        nondeps_to_purge = [name for name, (state, version) in nondeps.items()
                             if state == "purge"]
         all_to_remove = deps_to_remove + deps_to_purge + nondeps_to_remove + nondeps_to_purge
-        all_to_install = [(name, version) for name, (state, version) in deps.iteritems()
+        all_to_install = [(name, version) for name, (state, version) in deps.items()
                           if state == "install"]
-        all_to_install += [(name, version) for name, (state, version) in nondeps.iteritems()
+        all_to_install += [(name, version) for name, (state, version) in nondeps.items()
                            if state == "install"]
 
         self.list_paths_with_symlinks()
@@ -1669,7 +1671,7 @@ class Chroot:
         """Check there are no processes running inside the chroot."""
         if settings.docker_image:
             (status, output) = run(["docker", "top", self.docker_container])
-            count = len(output.strip().split("\n")) - 2 # header + bash launched on container creation
+            count = len(output.strip().split("\n")) - 2  # header + bash launched on container creation
         else:
             (status, output) = run(["lsof", "-w", "+D", self.name], ignore_errors=True)
             count = len(output.split("\n")) - 1
@@ -1690,7 +1692,8 @@ class Chroot:
         seen = []
         while True:
             p = subprocess.Popen(["lsof", "-t", "+D", self.name],
-                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 encoding='utf-8')
             stdout, _ = p.communicate()
             if not stdout:
                 break
@@ -1754,19 +1757,20 @@ class Chroot:
         etcmtab = self.relative("etc/mtab")
         if not os.path.lexists(etcmtab):
             os.symlink("../proc/mounts", etcmtab)
-        self.mount("devpts", "/dev/pts", fstype="devpts", opts="newinstance,noexec,nosuid,gid=5,mode=0620,ptmxmode=0666")
+        self.mount("devpts", "/dev/pts", fstype="devpts",
+                   opts="newinstance,noexec,nosuid,gid=5,mode=0620,ptmxmode=0666")
         dev_ptmx_rel_path = self.relative("dev/ptmx")
         if not os.path.islink(dev_ptmx_rel_path):
             if not os.path.exists(dev_ptmx_rel_path):
-                os.mknod(dev_ptmx_rel_path, 0666 | stat.S_IFCHR, os.makedev(5, 2))
+                os.mknod(dev_ptmx_rel_path, 0o666 | stat.S_IFCHR, os.makedev(5, 2))
             self.mount(self.relative("dev/pts/ptmx"), "/dev/ptmx", opts="bind", no_mkdir=True)
-        p = subprocess.Popen(["tty"], stdout=subprocess.PIPE)
+        p = subprocess.Popen(["tty"], stdout=subprocess.PIPE, encoding='utf-8')
         stdout, _ = p.communicate()
         current_tty = stdout.strip()
         if p.returncode == 0 and os.path.exists(current_tty):
             dev_console = self.relative("/dev/console")
             if not os.path.exists(dev_console):
-                os.mknod(dev_console, 0600, os.makedev(5, 1))
+                os.mknod(dev_console, 0o600, os.makedev(5, 1))
             self.mount(current_tty, "/dev/console", opts="bind", no_mkdir=True)
         self.mount("tmpfs", "/dev/shm", fstype="tmpfs", opts="size=65536k")
         if selinux_enabled():
@@ -1974,21 +1978,21 @@ def format_object_attributes(obj):
     if stat.S_ISSOCK(st.st_mode):
         ft += "s"
     res = "(%s, %s, %s %o, %d, %s)" % (
-            obj.user,
-            obj.group,
-            ft,
-            st.st_mode,
-            st.st_size,
-            obj.target)
+        obj.user,
+        obj.group,
+        ft,
+        st.st_mode,
+        st.st_size,
+        obj.target)
     return res
 
 
-def diff_meta_data(tree1, tree2, quiet=False):
+def diff_meta_data(tree1_p, tree2_p, quiet=False):
     """Compare two dir trees and return list of new files (only in 'tree2'),
        removed files (only in 'tree1'), and modified files."""
 
-    tree1 = tree1.copy()
-    tree2 = tree2.copy()
+    tree1 = tree1_p.copy()
+    tree2 = tree2_p.copy()
 
     for name in settings.ignored_files:
         if name[0] == ':':
@@ -2012,13 +2016,13 @@ def diff_meta_data(tree1, tree2, quiet=False):
         else:
             verbose = False
         pat = re.compile(pattern)
-        for name in tree1.keys():
+        for name in tree1_p.keys():
             m = pat.search(name)
             if m:
                 if verbose:
                     logging.info("IGNORED PATH@1: %s" % name)
                 del tree1[name]
-        for name in tree2.keys():
+        for name in tree2_p.keys():
             m = pat.search(name)
             if m:
                 if verbose:
@@ -2026,7 +2030,7 @@ def diff_meta_data(tree1, tree2, quiet=False):
                 del tree2[name]
 
     modified = []
-    for name in tree1.keys()[:]:
+    for name in tree1_p.keys():
         if name in tree2:
             if objects_are_different(tree1[name], tree2[name]):
                 if not quiet:
@@ -2036,8 +2040,8 @@ def diff_meta_data(tree1, tree2, quiet=False):
             del tree1[name]
             del tree2[name]
 
-    removed = [x for x in tree1.iteritems()]
-    new = [x for x in tree2.iteritems()]
+    removed = [x for x in tree1.items()]
+    new = [x for x in tree2.items()]
 
     # fix for #586793
     # prune rc?.d symlinks renamed by insserv
@@ -2108,16 +2112,16 @@ def diff_selections(chroot, selections):
        set to to restore original selections."""
     changes = {}
     current = chroot.get_selections()
-    for name, (value, version) in current.iteritems():
+    for name, (value, version) in current.items():
         if name not in selections:
             changes[name] = ("purge", None)
         elif selections[name][0] != value and \
                 selections[name][0] in ["purge", "install"]:
             changes[name] = selections[name]
-    for name, (value, version) in selections.iteritems():
+    for name, (value, version) in selections.items():
         if name not in current or \
-            current[name][1] != version:
-                changes[name] = selections[name]
+                current[name][1] != version:
+            changes[name] = selections[name]
     return changes
 
 
@@ -2139,6 +2143,7 @@ def get_package_names_from_package_files(package_files):
             else:
                 vlist.append(p)
     return vlist
+
 
 # Method to process a changes file, returning a list of all the .deb packages
 # from the 'Files' stanza.
@@ -2357,7 +2362,8 @@ def install_purge_test(chroot, chroot_state, package_files, packages, extra_pack
             chroot_state_with_deps = chroot.get_state_meta_data()
 
     chroot.check_for_no_processes()
-    chroot.check_for_broken_symlinks(warn_only=True)  # warn only since no scripts could fix up things after installing the dependencies
+    chroot.check_for_broken_symlinks(
+        warn_only=True)  # warn only since no scripts could fix up things after installing the dependencies
 
     chroot.install_packages(package_files, packages, with_scripts=False)
 
@@ -2499,8 +2505,8 @@ def install_and_upgrade_between_distros(package_files, packages_qualified):
     if chroot_state is not None:
         if chroot.initial_selections != chroot_state["initial_selections"]:
             logging.warn("Initial package selections do not match - ignoring loaded reference chroot state")
-            refsel = [(s, p, v) for p, (s, v) in chroot_state["initial_selections"].iteritems()]
-            cursel = [(s, p, v) for p, (s, v) in chroot.initial_selections.iteritems()]
+            refsel = [(s, p, v) for p, (s, v) in chroot_state["initial_selections"].items()]
+            cursel = [(s, p, v) for p, (s, v) in chroot.initial_selections.items()]
             rsel = [x for x in refsel if not x in cursel]
             csel = [x for x in cursel if not x in refsel]
             [logging.debug("  -%s" % " ".join(x)) for x in rsel]
@@ -2633,6 +2639,7 @@ def find_default_debian_mirrors():
     return mirrors
 
 
+# only parser param is used
 def forget_ignores(option, opt, value, parser, *args, **kwargs):
     settings.bindmounts = []
     parser.values.ignore = []
@@ -2641,6 +2648,7 @@ def forget_ignores(option, opt, value, parser, *args, **kwargs):
     settings.ignored_patterns = []
 
 
+# only parser param is used
 def set_basetgz_to_pbuilder(option, opt, value, parser, *args, **kwargs):
     parser.values.basetgz = "/var/cache/pbuilder/base.tgz"
 
@@ -2743,6 +2751,7 @@ def parse_command_line():
                       action="store_true", default=False,
                       help="Enable the installation of Suggests.")
 
+    # value is not used
     def keep_env_parser(option, opt_str, value, parser):
         setattr(parser.values, option.dest, True)
         if "--keep-tmpdir" == opt_str:
@@ -2752,7 +2761,7 @@ def parse_command_line():
     parser.add_option("-k", "--keep-env", "--keep-tmpdir", action="callback",
                       callback=keep_env_parser, default=False, dest='keep_env',
                       help="Keep the environment used for testing after "
-                      "the program ends.")
+                           "the program ends.")
 
     parser.add_option("-K", "--keyring", action="store", metavar="FILE",
                       help="Use FILE as the keyring to use with debootstrap when creating chroots.")
@@ -2769,7 +2778,7 @@ def parse_command_line():
     parser.add_option("--list-installed-files",
                       action="store_true", default=False,
                       help="List files added to the chroot after the " +
-                      "installation of the package.")
+                           "installation of the package.")
 
     parser.add_option("--lvm-volume", metavar="LVM-VOL", action="store",
                       help="Use LVM-VOL as source for the chroot, instead of building " +
@@ -2778,17 +2787,17 @@ def parse_command_line():
 
     parser.add_option("--lvm-snapshot-size", metavar="SNAPSHOT-SIZE", action="store",
                       default="1G", help="Use SNAPSHOT-SIZE as snapshot size when creating " +
-                      "a new LVM snapshot (default: 1G)")
+                                         "a new LVM snapshot (default: 1G)")
 
     parser.add_option("--schroot", metavar="SCHROOT-NAME", action="store",
                       help="Use schroot session named SCHROOT-NAME for the "
-                      "testing environment, instead of building a new one "
-                      "with debootstrap.")
+                           "testing environment, instead of building a new one "
+                           "with debootstrap.")
 
     parser.add_option("--docker-image", metavar="DOCKER-IMAGE", action="store",
                       help="Use a container created from the docker image "
-                      "DOCKER-IMAGE for the testing environment, instead of "
-                      "building a new one with debootstrap.")
+                           "DOCKER-IMAGE for the testing environment, instead of "
+                           "building a new one with debootstrap.")
 
     parser.add_option("-m", "--mirror", action="append", metavar="URL",
                       default=[],
@@ -2797,12 +2806,12 @@ def parse_command_line():
     parser.add_option("--extra-repo", action="append",
                       default=[],
                       help="Additional (unparsed) lines to be appended to sources.list, e.g. " +
-                      "'deb <URL> <distrib> <components>' or 'deb file://</bind/mount> ./'")
+                           "'deb <URL> <distrib> <components>' or 'deb file://</bind/mount> ./'")
 
     parser.add_option("--testdebs-repo",
                       help="A repository that contains the packages to be tested, e.g. " +
-                      "'deb <URL> <distrib> <components>...' or 'deb file://</bind/mount> ./'," +
-                      "plain URLs or local paths are permitted, too.")
+                           "'deb <URL> <distrib> <components>...' or 'deb file://</bind/mount> ./'," +
+                           "plain URLs or local paths are permitted, too.")
 
     parser.add_option("--no-adequate",
                       default=False,
@@ -2829,7 +2838,7 @@ def parse_command_line():
     parser.add_option("--no-upgrade-test",
                       action="store_true", default=False,
                       help="Skip testing the upgrade from an existing version " +
-                      "in the archive.")
+                           "in the archive.")
 
     parser.add_option("--no-install-purge-test",
                       action="store_true", default=False,
@@ -2846,16 +2855,16 @@ def parse_command_line():
     parser.add_option("--fake-essential-packages",
                       action="append", default=[],
                       help="Install additional packages in the base chroot that are not removed after the test. " +
-                      "Takes a comma separated list of package names and can be given multiple times. " +
-                      "Useful for packages that can be used during purge of the package to be tested " +
-                      "or to test whether the package to be tested mishandles these packages.")
+                           "Takes a comma separated list of package names and can be given multiple times. " +
+                           "Useful for packages that can be used during purge of the package to be tested " +
+                           "or to test whether the package to be tested mishandles these packages.")
 
     parser.add_option("--extra-old-packages",
                       action="append", default=[],
                       help="Install these additional packages along with the old packages from the archive. " +
-                      "Useful to test Conflicts/Replaces of packages that will disappear during the update. " +
-                      "Takes a comma separated list of package names and can be given multiple times. " +
-                      "For install/purge tests these packages will be installed before the package that is to be tested.")
+                           "Useful to test Conflicts/Replaces of packages that will disappear during the update. " +
+                           "Takes a comma separated list of package names and can be given multiple times. " +
+                           "For install/purge tests these packages will be installed before the package that is to be tested.")
 
     parser.add_option("-p", "--pbuilder", action="callback",
                       callback=set_basetgz_to_pbuilder,
@@ -3021,7 +3030,8 @@ def parse_command_line():
     settings.install_purge_install = opts.install_purge_install
     settings.install_remove_install = opts.install_remove_install
     settings.list_installed_files = opts.list_installed_files
-    [settings.fake_essential_packages.extend([i.strip() for i in csv.split(",")]) for csv in opts.fake_essential_packages]
+    [settings.fake_essential_packages.extend([i.strip() for i in csv.split(",")]) for csv in
+     opts.fake_essential_packages]
     [settings.extra_old_packages.extend([i.strip() for i in csv.split(",")]) for csv in opts.extra_old_packages]
     settings.skip_cronfiles_test = opts.skip_cronfiles_test
     settings.skip_logrotatefiles_test = opts.skip_logrotatefiles_test
@@ -3080,7 +3090,7 @@ def parse_command_line():
         if not settings.debian_mirrors:
             settings.debian_mirrors = defaults.get_mirror()
 
-    settings.distro_config = piupartslib.conf.DistroConfig(
+    settings.distro_config = DistroConfig(
         DISTRO_CONFIG_FILE, settings.debian_mirrors[0][0])
 
     if settings.keep_sources_list and len(settings.debian_distros) > 1:
@@ -3102,6 +3112,7 @@ def parse_command_line():
 
 def get_chroot():
     return Chroot()
+
 
 # Process the packages given in a list
 def process_packages(package_list):
@@ -3175,7 +3186,7 @@ def main():
 
     # check if user has root privileges
     if os.getuid():
-        print 'You need to be root to use piuparts.'
+        print('You need to be root to use piuparts.')
         sys.exit(1)
 
     logging.info("-" * 78)
@@ -3230,18 +3241,18 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print ''
-        print 'Piuparts interrupted by the user, exiting...'
+        print('')
+        print('Piuparts interrupted by the user, exiting...')
         panic(1)
         sys.exit(1)
     except SystemExit:
         raise
     except:
-        print ''
-        print 'Piuparts caught exception, exiting...'
-        print '-'*60
+        print('')
+        print('Piuparts caught exception, exiting...')
+        print('-' * 60)
         traceback.print_exc(file=sys.stdout)
-        print '-'*60
+        print('-' * 60)
         panic(1)
         raise
 

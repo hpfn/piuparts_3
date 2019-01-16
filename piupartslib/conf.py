@@ -23,8 +23,9 @@
 # in a configuration file, that's why).
 #
 
-import ConfigParser
-import UserDict
+from configparser import ConfigParser
+from collections import UserDict
+
 import subprocess
 import collections
 import re
@@ -46,18 +47,18 @@ class MissingMandatorySetting(Exception):
             (key, filename),
 
 
-class Config(UserDict.UserDict):
+class Config(UserDict):
 
     def __init__(self, section, defaults, mandatory=[], defaults_section=None):
-        UserDict.UserDict.__init__(self)
+        super().__init__(self)
         self._section = section
         self._defaults_section = defaults_section
-        for key, value in defaults.iteritems():
+        for key, value in defaults.items():
             self[key] = value
         self._mandatory = mandatory
 
     def read(self, filename):
-        cp = ConfigParser.ConfigParser()
+        cp = ConfigParser()
         cp.read(filename)
         if not cp.has_section(self._section):
             raise MissingSection(filename, self._section)
@@ -113,7 +114,7 @@ class Config(UserDict.UserDict):
         ])
 
         # add mappings for e.g. "oldstable" -> "oldstable"
-        distmap.update(dict([(val, val) for key, val in distmap.iteritems()]))
+        distmap.update(dict([(val, val) for key, val in distmap.items()]))
 
         # map e.g. "Debian6" -> "oldstable" where debdist.old(result="fullname")
         # currently returns 'Debian 6.0 "Squeeze"'
@@ -143,15 +144,16 @@ class Config(UserDict.UserDict):
         if not self["arch"]:
             # Try to figure it out ourselves, using dpkg
             p = subprocess.Popen(["dpkg", "--print-architecture"],
-                                 stdout=subprocess.PIPE)
+                                 stdout=subprocess.PIPE,
+                                 encoding='utf-8')
             self["arch"] = p.stdout.read().rstrip()
         return self["arch"]
 
 
-class DistroConfig(UserDict.UserDict):
+class DistroConfig(UserDict):
 
     def __init__(self, filename, mirror):
-        UserDict.UserDict.__init__(self)
+        super().__init__(self)
         self._mirror = mirror
         self._defaults = {
             "uri": None,
@@ -161,7 +163,7 @@ class DistroConfig(UserDict.UserDict):
                 "depends": None,
                 "candidates": None,
         }
-        cp = ConfigParser.SafeConfigParser()
+        cp = ConfigParser()
         cp.read(filename)
         for section in cp.sections():
             self[section] = dict(self._defaults)
@@ -250,6 +252,7 @@ class DistroConfig(UserDict.UserDict):
         # look for the first base distribution
         for d in self._expand_depends(distro):
             if self.get(d, "depends"):
+                # next ?
                 next  # skip partial distro
             return "%s_%s.tar.gz" % (self.get_distribution(d), arch)
         return None

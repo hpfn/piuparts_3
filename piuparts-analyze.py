@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Copyright 2005 Lars Wirzenius (liw@iki.fi)
@@ -30,13 +30,12 @@ move the failed log to ./bugged as well.
 
 """
 
-
 import os
 import sys
 import time
 import re
 import shutil
-import subprocess
+# import subprocess
 import fcntl
 
 import debianbts
@@ -44,9 +43,8 @@ import apt_pkg
 from signal import alarm, signal, SIGALRM
 from collections import deque
 
-import piupartslib.conf
+from piupartslib.conf import Config as PiupartsLibConfig
 from piupartslib.conf import MissingSection
-
 
 CONFIG_FILE = "/etc/piuparts/piuparts.conf"
 
@@ -54,6 +52,7 @@ apt_pkg.init_system()
 
 error_pattern = re.compile(r"(?<=\n).*error.*\n?", flags=re.IGNORECASE)
 chroot_pattern = re.compile(r"tmp/tmp.*?'")
+
 
 ############################################################################
 
@@ -123,7 +122,7 @@ class PiupartsBTS():
                     pass
                 else:
                     versions.append(v)
-            self._bug_versions[bug] =  list(reversed(sorted(versions, cmp=apt_pkg.version_compare))) or ['~']
+            self._bug_versions[bug] = list(reversed(sorted(versions, cmp=apt_pkg.version_compare))) or ['~']
         self._queries += 1
         return self._bug_versions[bug]
 
@@ -133,6 +132,7 @@ class PiupartsBTS():
 
 piupartsbts = PiupartsBTS()
 
+
 ############################################################################
 
 class Busy(Exception):
@@ -141,15 +141,15 @@ class Busy(Exception):
         self.args = "section is locked by another process",
 
 
-class Config(piupartslib.conf.Config):
+class Config(PiupartsLibConfig):
     def __init__(self, section="global", defaults_section=None):
         self.section = section
-        piupartslib.conf.Config.__init__(self, section,
-                                         {
-                                         "sections": "report",
-                                         "master-directory": ".",
-                                         },
-                                         defaults_section=defaults_section)
+        super().__init__(self, section,
+                         {
+                             "sections": "report",
+                             "master-directory": ".",
+                         },
+                         defaults_section=defaults_section)
 
 
 def find_logs(directory):
@@ -207,7 +207,7 @@ def extract_errors(log):
 def extract_headers(log):
     with open(log, "r") as f:
         data = f.read()
-    headers = []
+    # headers = []
     headers = data.partition("\nExecuting:")[0]
     if headers and not headers.endswith("\n"):
         headers += "\n"
@@ -296,7 +296,7 @@ def mark_logs_with_reported_bugs():
                             old_pversion = package_source_version(bugged_log)
                             bugged_errors = extract_errors(bugged_log)
                             if (apt_pkg.version_compare(old_pversion, bug_version) == 0  # old_pversion == bug_version
-                                and
+                                    and
                                     failed_errors == bugged_errors):
                                 # a bug was filed for an old version of the package,
                                 # and the errors were the same back then - assume it is the same bug.
@@ -311,7 +311,7 @@ def mark_logs_with_reported_bugs():
             raise
         except:
             print('ERROR processing %s' % failed_log)
-            print sys.exc_info()[0]
+            print(sys.exc_info()[0])
         alarm(0)
 
 

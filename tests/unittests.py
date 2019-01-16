@@ -4,12 +4,11 @@ import os
 import StringIO
 import unittest
 
+from piupartslib.packagesdb import LogDB
+from piupartslib.packagesdb import PackagesDB
 
-import piupartslib.packagesdb
 
-
-class FakeLogDB(piupartslib.packagesdb.LogDB):
-
+class FakeLogDB(LogDB):
     """A fake version of the LogDB class, for testing
 
     This version simulates filesystem actions so that there is no need
@@ -49,7 +48,7 @@ class FakeLogDB(piupartslib.packagesdb.LogDB):
 class PackagesDbTests(unittest.TestCase):
 
     def new_db(self, packages_file_contents):
-        db = piupartslib.packagesdb.PackagesDB(FakeLogDB())
+        db = PackagesDB(FakeLogDB())
         db.read_packages_file(StringIO.StringIO(packages_file_contents))
         return db
 
