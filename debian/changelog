@@ -1,3 +1,22 @@
+piuparts (0.97) UNRELEASED; urgency=medium
+
+  [ Herbert Fortes ]
+  * piupartslib/dwke.py:
+       - class Problem:
+           - Class attr instead of instance attr
+             Save some memory
+       - get_file_dict function:
+           - dictionary comprehension. "More readable and
+             often faster at the same time".
+       - create_problem_list function:
+            - list.sort() instead of sorted(list).
+              sorted() returns a *new* sorted list. This is
+              not necessary here.
+              list.sort() sorts the list in place.
+              Save some memory
+
+ -- Holger Levsen <holger@debian.org>  Sun, 13 Jan 2019 16:58:44 +0100
+
 piuparts (0.96) unstable; urgency=medium
 
   [ Andreas Beckmann ]
