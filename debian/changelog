@@ -1,3 +1,10 @@
+piuparts (0.97) UNRELEASED; urgency=medium
+
+  [ Herbert Fortes ]
+  * Add '()' to print. Py2 and Py3 compatible.
+
+ -- Holger Levsen <holger@debian.org>  Sun, 13 Jan 2019 16:58:44 +0100
+
 piuparts (0.96) unstable; urgency=medium
 
   [ Andreas Beckmann ]
